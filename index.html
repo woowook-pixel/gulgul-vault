@@ -370,7 +370,7 @@ function errText(e){
 }
 const authHeaders=(tk,accept)=>({Authorization:'Bearer '+tk,Accept:accept||'application/vnd.github+json'});
 async function fetchTree(tk){
-  const r=await fetch(TREE_URL,{headers:authHeaders(tk)});
+  const r=await fetch(TREE_URL,{cache:'no-store',headers:authHeaders(tk)}); // 올리기·삭제 직후 새로고침이 60초 캐시된 옛 목록을 받지 않게 합니다
   if(!r.ok) throw {status:r.status,remaining:r.headers.get('x-ratelimit-remaining')};
   const j=await r.json();
   if(!j||!Array.isArray(j.tree)) throw {status:0};
@@ -658,7 +658,7 @@ function loadJSZip(){
 }
 // 깃허브 API 호출 (쓰기 포함). 실패하면 {status,remaining,msg}를 던집니다.
 async function gh(method,path,body){
-  const r=await fetch(API+path,{method,headers:Object.assign(authHeaders(token),body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
+  const r=await fetch(API+path,{method,cache:'no-store',headers:Object.assign(authHeaders(token),body?{'Content-Type':'application/json'}:{}),body:body?JSON.stringify(body):undefined});
   if(!r.ok){ let msg=''; try{ msg=(await r.json()).message||''; }catch(_){} throw {status:r.status,remaining:r.headers.get('x-ratelimit-remaining'),msg}; }
   return r.json();
 }

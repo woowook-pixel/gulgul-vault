@@ -60,7 +60,7 @@ button{cursor:pointer}
 .vguide[hidden]{display:none}
 .vchips{display:flex; gap:8px; flex-wrap:wrap}
 .vchips[hidden]{display:none}
-.vchips .pill{height:32px; padding:0 12px; font-size:12px}
+.vchips .pill{height:38px; padding:0 14px; font-size:13px}
 .vsearch{width:100%; height:42px; border:1px solid var(--line); border-radius:10px; background:var(--card); padding:0 12px}
 .vsearch[hidden]{display:none}
 .vsearch::placeholder{color:var(--muted)}
@@ -141,12 +141,10 @@ button{cursor:pointer}
 .cbh button{height:32px; padding:0 14px; border:0; border-radius:8px; background:var(--blue); color:var(--on-blue); font-weight:900; font-size:12px}
 .cb pre{margin:0; padding:12px; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; font-size:12.5px; line-height:1.6}
 .cb pre code{background:none; padding:0; font-size:inherit}
-.upbtn{flex:none; height:34px; padding:0 12px; margin:0 2px; border:1px solid rgba(255,255,255,.55); border-radius:10px; background:rgba(255,255,255,.16); color:#fff; font-weight:900; font-size:13px; white-space:nowrap}
+.upbtn{flex:none; height:38px; padding:0 12px; margin:0 2px; border:1px solid rgba(255,255,255,.55); border-radius:10px; background:rgba(255,255,255,.16); color:#fff; font-weight:900; font-size:13px; white-space:nowrap}
 .upbtn:active{background:rgba(255,255,255,.3)}
 .upbtn[hidden]{display:none}
-@media (max-width:419px){ .vstamp{display:none} }
-.upbtn svg{display:none; width:18px; height:18px; vertical-align:middle}
-@media (max-width:349px){ .upbtn.cp svg{display:inline-block} .upbtn.cp span{display:none} .upbtn.cp{padding:0 9px} }
+@media (max-width:359px){ .vstamp{display:none} }
 .upbtn:disabled{opacity:.6}
 .vauth .sub{background:var(--bg); border-color:var(--line); color:var(--ink); font-weight:700; font-size:14px; height:44px}
 .vauth .sub[hidden]{display:none}
@@ -184,6 +182,19 @@ select.vf{appearance:auto}
 .vbar i{display:block; height:100%; width:0; background:var(--teal); transition:width .2s}
 .vprog{display:flex; flex-direction:column; gap:12px; padding:36px 4px; text-align:center; font-weight:700}
 .vprog small{color:var(--muted); font-size:12px}
+.vmenu-bg{position:fixed; inset:0; z-index:29}
+.vmenu{position:fixed; z-index:30; top:calc(var(--top) - 2px); right:8px; min-width:200px; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.25); padding:6px; display:flex; flex-direction:column}
+.vmenu[hidden],.vmenu-bg[hidden]{display:none}
+.vmenu button{height:48px; padding:0 14px; border:0; border-radius:10px; background:none; text-align:left; font-weight:700; font-size:15px}
+.vmenu button:active{background:rgba(127,127,127,.2)}
+.vmenu button:disabled{opacity:.5}
+.vcount{font-size:12px; font-weight:700; color:var(--muted); margin:-4px 2px 0}
+.vcount:empty{display:none}
+.vshow{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; min-height:32px}
+.vshow input{width:20px; height:20px}
+.vauth .danger{background:none; border:0; color:#C23B3B; font-weight:700; font-size:13px; height:40px}
+@media (prefers-color-scheme: dark){ .vauth .danger{color:#FF8C8C} }
+.vauth .danger[hidden]{display:none}
 .vtoast{position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:40; max-width:calc(100% - 32px); background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:12px; font-size:13px; font-weight:700; text-align:center; display:none; pointer-events:none}
 .vtoast.on{display:block}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
@@ -195,10 +206,14 @@ select.vf{appearance:auto}
   <span class="grow"></span>
   <span class="vstamp" id="vStamp"></span>
   <button class="upbtn" id="vUpload" type="button" hidden>올리기</button>
-  <button class="upbtn cp" id="vCopyList" type="button" aria-label="목록 복사" title="목록 복사" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg><span>목록 복사</span></button>
-  <button class="ib" id="vKey" type="button" aria-label="토큰 지우기" title="토큰 지우기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg></button>
   <button class="ib" id="vRefresh" type="button" aria-label="새로고침" title="새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14.5-4.4L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.5 4.4L20 16"/><path d="M20 20v-4h-4"/></svg></button>
+  <button class="ib" id="vMore" type="button" aria-label="더보기" title="더보기" aria-haspopup="menu" aria-expanded="false" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg></button>
 </header>
+<div class="vmenu-bg" id="vMenuBg" hidden></div>
+<div class="vmenu" id="vMenu" role="menu" hidden>
+  <button type="button" role="menuitem" id="vCopyList">목록 복사</button>
+  <button type="button" role="menuitem" id="vChgTok">토큰 바꾸기</button>
+</div>
 <nav class="vtabs" id="vTabs" aria-label="종류"></nav>
 <section class="vwrap" id="vAuth" hidden>
   <div class="vauth">
@@ -212,17 +227,20 @@ select.vf{appearance:auto}
     </ol>
     <form id="vAuthForm" autocomplete="off">
       <input class="vsearch" id="vTokenIn" type="password" placeholder="github_pat_..." aria-label="GitHub 토큰" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <label class="vshow"><input type="checkbox" id="vShowTok"> 토큰 보기</label>
       <button class="pill go" id="vAuthGo" type="submit">저장하고 열기</button>
       <button class="pill sub" id="vAuthBack" type="button" hidden>돌아가기</button>
+      <button class="pill danger" id="vAuthClear" type="button" hidden>이 기기에 저장된 토큰 지우기</button>
     </form>
     <p class="vauth-err" id="vAuthErr" role="status"></p>
-    <p class="vauth-note">토큰은 이 브라우저에만 저장되고 GitHub API 호출에만 쓰입니다. 기기를 잃어버리면 GitHub에서 토큰을 삭제해 주세요. 오른쪽 위 열쇠 버튼으로 이 기기의 토큰을 지울 수 있습니다. 올리기 중에는 토큰으로 저장소에 파일을 쓰므로 쓰기 권한 토큰은 꼭 이 기기에만 보관해 주세요.</p>
+    <p class="vauth-note">토큰은 이 브라우저에만 저장되고 GitHub API 호출에만 쓰입니다. 기기를 잃어버리면 GitHub에서 토큰을 삭제해 주세요. 오른쪽 위 더보기(점 세 개) 메뉴의 '토큰 바꾸기' 화면에서 이 기기의 토큰을 지울 수 있습니다. 올리기 중에는 토큰으로 저장소에 파일을 쓰므로 쓰기 권한 토큰은 꼭 이 기기에만 보관해 주세요.</p>
   </div>
 </section>
 <main class="vwrap" id="vMain" hidden>
   <details class="vguide" id="vGuide" hidden><summary>안내</summary><div class="md" id="vGuideMd"></div></details>
   <div class="vchips" id="vChips" aria-label="하위 폴더"></div>
-  <input class="vsearch" id="vSearch" type="search" placeholder="파일 이름 검색" aria-label="파일 이름 검색" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <input class="vsearch" id="vSearch" type="search" placeholder="파일 이름 검색" aria-label="파일 이름 검색" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  <div class="vcount" id="vCount" role="status"></div>
   <div class="vmsg" id="vMsg" role="status"></div>
   <div class="vgrid" id="vGrid"></div>
 </main>
@@ -292,7 +310,10 @@ const NS='http://www.w3.org/2000/svg';
 const DOC_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>';
 
 // ---------- state ----------
-let items=[], allFiles=[], readme=null, stamp=0, cat='svg', sub='', q='', loaded=false, loading=false, shown=[];
+const TAB_KEY='gulgul-vault-tab-v1';
+function savedTab(){ try{ const t=localStorage.getItem(TAB_KEY); if(CATS.some(c=>c[0]===t)) return t; }catch(e){} return 'svg'; }
+const saveTab=()=>{ try{ localStorage.setItem(TAB_KEY,cat); }catch(e){} };
+let items=[], allFiles=[], readme=null, stamp=0, cat=savedTab(), sub='', q='', loaded=false, loading=false, shown=[];
 const texts=new Map(); // blob sha -> md text
 const blobs=new Map(); // blob sha -> Promise<{blob,url}>
 let token=''; try{ token=localStorage.getItem(TOKEN_KEY)||''; }catch(e){}
@@ -358,11 +379,11 @@ async function load(force){
 
 // ---------- 토큰 입력 ----------
 function showAuth(msg){
-  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vKey').hidden=!token; $('#vUpload').hidden=true; $('#vCopyList').hidden=true; $('#vStamp').textContent='';
+  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vMore').hidden=true; $('#vUpload').hidden=true; closeMenu(); $('#vAuthClear').hidden=!token; $('#vShowTok').checked=false; $('#vTokenIn').type='password'; $('#vStamp').textContent='';
   $('#vAuthGo').textContent=token?'토큰 바꾸기':'저장하고 열기'; $('#vAuthBack').hidden=!(token&&loaded);
   $('#vAuthErr').textContent=msg||''; if(!msg) $('#vTokenIn').focus();
 }
-function showMain(){ $('#vAuth').hidden=true; $('#vMain').hidden=false; $('#vTabs').hidden=false; $('#vRefresh').hidden=false; $('#vKey').hidden=false; $('#vUpload').hidden=false; $('#vCopyList').hidden=false; }
+function showMain(){ $('#vAuth').hidden=true; $('#vMain').hidden=false; $('#vTabs').hidden=false; $('#vRefresh').hidden=false; $('#vMore').hidden=false; $('#vUpload').hidden=false; }
 $('#vAuthBack').onclick=()=>{ held=null; showMain(); render(); };
 function clearToken(){ token=''; try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(CACHE_KEY); }catch(e){} blobs.clear(); texts.clear(); items=[]; allFiles=[]; readme=null; loaded=false; guideDone=false; $('#vGuideMd').textContent=''; $('#vGuide').open=false; }
 $('#vAuthForm').addEventListener('submit',async e=>{
@@ -376,7 +397,14 @@ $('#vAuthForm').addEventListener('submit',async e=>{
   }catch(er){ $('#vAuthErr').textContent=errText(er); }
   btn.disabled=false;
 });
-$('#vKey').onclick=()=>{ if(confirm('저장된 토큰과 파일 목록을 이 기기에서 지울까요?')){ clearToken(); showAuth(''); } };
+$('#vAuthClear').onclick=()=>{ if(confirm('저장된 토큰과 파일 목록을 이 기기에서 지울까요?')){ clearToken(); showAuth(''); } };
+$('#vShowTok').onchange=e=>{ $('#vTokenIn').type=e.target.checked?'text':'password'; };
+// 더보기 메뉴: 자주 쓰지 않는 기능(목록 복사, 토큰 바꾸기)을 모아 둡니다
+function closeMenu(){ $('#vMenu').hidden=true; $('#vMenuBg').hidden=true; $('#vMore').setAttribute('aria-expanded','false'); }
+$('#vMore').onclick=()=>{ const open=$('#vMenu').hidden; $('#vMenu').hidden=!open; $('#vMenuBg').hidden=!open; $('#vMore').setAttribute('aria-expanded',String(open)); if(open) $('#vCopyList').focus(); };
+$('#vMenuBg').onclick=closeMenu;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('#vMenu').hidden){ closeMenu(); $('#vMore').focus(); } });
+$('#vChgTok').onclick=()=>{ closeMenu(); showAuth(''); };
 
 // ---------- toast / copy ----------
 let toastT; function toast(t){ const e=$('#vToast'); e.textContent=t; e.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>e.classList.remove('on'),2200); }
@@ -400,10 +428,10 @@ document.addEventListener('keydown',e=>{
 const catItems=()=>items.filter(it=>it.top===cat);
 function render(){
   const tabs=$('#vTabs'); tabs.textContent='';
-  CATS.forEach(([k,label])=>{ const n=items.filter(it=>it.top===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
+  CATS.forEach(([k,label])=>{ const n=items.filter(it=>it.top===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; saveTab(); sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
   $('#vStamp').textContent=stamp?fmtStamp(stamp):'';
   $('#vGuide').hidden=!readme;
-  const msg=$('#vMsg'), grid=$('#vGrid'), chips=$('#vChips'), search=$('#vSearch'); grid.textContent=''; chips.textContent=''; msg.textContent=''; shown=[];
+  const msg=$('#vMsg'), grid=$('#vGrid'), chips=$('#vChips'), search=$('#vSearch'); grid.textContent=''; chips.textContent=''; msg.textContent=''; $('#vCount').textContent=''; shown=[];
   if(!loaded){
     chips.hidden=true; search.hidden=true;
     if(loading){ msg.textContent='파일 목록을 불러오는 중…'; }
@@ -423,6 +451,7 @@ function render(){
   }
   const qq=q.trim().toLowerCase();
   shown=all.filter(it=>(!sub||(sub==='/'?!it.sub:it.sub===sub))&&(!qq||it.name.toLowerCase().includes(qq)));
+  $('#vCount').textContent=(qq||sub)?`${shown.length}개 / 전체 ${all.length}개`:`${all.length}개`;
   if(!shown.length){ msg.textContent='검색 결과가 없습니다'; return; }
   const imgs=shown.filter(it=>it.ext!=='md');
   shown.forEach(it=>grid.append(it.ext==='md'?mdCard(it):imgCard(it,imgs)));
@@ -778,6 +807,7 @@ async function doUpload(){
   }
   upBusy=false; $('#vUpActs').hidden=false;
   if($('#vUp').classList.contains('on')&&up===u) closeTop();
+  const top=files[0].path.split('/'); if(top.length>1&&CATS.some(c=>c[0]===top[0])){ cat=top[0]; saveTab(); sub=''; q=''; $('#vSearch').value=''; }
   toast(`파일 ${files.length}개를 올렸습니다`); load(true);
 }
 const fileIn=h('input',{type:'file',multiple:'',hidden:'',tabindex:'-1','aria-hidden':'true'}); document.body.append(fileIn);
@@ -813,14 +843,14 @@ async function fetchDates(files,onProg){
 }
 const fmtDay=iso=>{ if(!iso) return '-'; const d=new Date(iso), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
 async function buildList(){
-  const files=await fetchTree(token), btn=$('#vCopyList');
-  const date=await fetchDates(files,(a,b)=>{ btn.querySelector('span').textContent=`${a}/${b}`; });
+  const files=await fetchTree(token);
+  const date=await fetchDates(files,(a,b)=>toast(`수정일 확인 중… ${a} / ${b}`));
   const text=files.slice().sort((a,b)=>a.path.localeCompare(b.path,'ko',{numeric:true})).map(f=>`${f.path}, ${((f.size||0)/1024).toFixed(1)}, ${fmtDay(date.get(f.path))}`).join('\n');
   return {text,n:files.length,truncated:files.truncated,missing:files.filter(f=>!date.has(f.path)).length};
 }
+let copying=false;
 $('#vCopyList').onclick=async()=>{
-  const btn=$('#vCopyList'), label=btn.querySelector('span'); if(btn.disabled) return;
-  btn.disabled=true; label.textContent='복사 중…'; toast('목록을 만드는 중입니다. 처음에는 시간이 걸릴 수 있습니다');
+  closeMenu(); if(copying) return; copying=true; toast('목록을 만드는 중입니다. 처음에는 시간이 걸릴 수 있습니다');
   let res=null, jerr=null;
   const job=buildList().then(r=>{ res=r; return new Blob([r.text],{type:'text/plain'}); },e=>{ jerr=e; throw e; });
   // 사파리는 버튼을 누른 직후에 복사를 시작해야 해서, 만드는 중인 결과(Promise)를 그대로 넘깁니다
@@ -836,7 +866,7 @@ $('#vCopyList').onclick=async()=>{
     if(e&&e.status===401){ showAuth(errText(e)); }
     else toast(e&&e.status?errText(e):'목록을 복사하지 못했습니다. 다시 시도해 주세요');
   }
-  label.textContent='목록 복사'; btn.disabled=false;
+  copying=false;
 };
 $('#vcClose').onclick=closeTop; $('#vcSel').onclick=()=>{ const t=$('#vcText'); t.focus(); t.select(); };
 // ---------- entry ----------

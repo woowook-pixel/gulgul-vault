@@ -195,6 +195,17 @@ select.vf{appearance:auto}
 .vauth .danger{background:none; border:0; color:#C23B3B; font-weight:700; font-size:13px; height:40px}
 @media (prefers-color-scheme: dark){ .vauth .danger{color:#FF8C8C} }
 .vauth .danger[hidden]{display:none}
+.vi{position:relative}
+.vi.sel{outline:3px solid var(--teal); outline-offset:-3px}
+.vi.sel::after{content:"✓"; position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:13px; background:var(--teal); color:var(--on-chip); font-weight:900; display:grid; place-items:center}
+body.selmode .vwrap{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.vselbar{position:fixed; left:0; right:0; bottom:0; z-index:12; display:flex; align-items:center; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px)); background:var(--card); border-top:1px solid var(--line)}
+.vselbar[hidden]{display:none}
+body.selmode .vtoast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+.vselbar span{flex:1; min-width:0; font-weight:900; font-size:14px; text-align:center}
+.vselbar button{height:46px; padding:0 14px; border:1px solid var(--line); border-radius:14px; background:var(--bg); font-weight:900; font-size:14px; white-space:nowrap}
+.vselbar button:disabled,.vpacts button:disabled{opacity:.5}
+.vpacts button.danger,.vselbar button.danger{background:#C23B3B; border-color:#C23B3B; color:#fff}
 .vtoast{position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:40; max-width:calc(100% - 32px); background:var(--ink); color:var(--bg); padding:8px 14px; border-radius:12px; font-size:13px; font-weight:700; text-align:center; display:none; pointer-events:none}
 .vtoast.on{display:block}
 @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
@@ -212,6 +223,7 @@ select.vf{appearance:auto}
 <div class="vmenu-bg" id="vMenuBg" hidden></div>
 <div class="vmenu" id="vMenu" role="menu" hidden>
   <button type="button" role="menuitem" id="vCopyList">목록 복사</button>
+  <button type="button" role="menuitem" id="vSelMode">파일 선택 · 삭제</button>
   <button type="button" role="menuitem" id="vChgTok">토큰 바꾸기</button>
 </div>
 <nav class="vtabs" id="vTabs" aria-label="종류"></nav>
@@ -248,6 +260,7 @@ select.vf{appearance:auto}
   <div class="vpbar">
     <button class="ib" id="vpClose" type="button" aria-label="미리보기 닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="ttl"><b id="vpName"></b><span id="vpMeta"></span></div>
+    <button class="ib" id="vpTrash" type="button" aria-label="이 파일 삭제" title="이 파일 삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg></button>
   </div>
   <div class="vpstage" id="vpStage">
     <img id="vpImg" alt="" draggable="false" decoding="async">
@@ -264,6 +277,7 @@ select.vf{appearance:auto}
   <div class="vpbar">
     <button class="ib" id="vrClose" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
     <div class="ttl"><b id="vrName"></b><span id="vrMeta"></span></div>
+    <button class="ib" id="vrTrash" type="button" aria-label="이 파일 삭제" title="이 파일 삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg></button>
   </div>
   <div class="vrbody"><article class="md" id="vrMd"></article></div>
 </div>
@@ -276,6 +290,23 @@ select.vf{appearance:auto}
   <div class="vpacts" id="vUpActs">
     <button type="button" id="vuCancel">취소</button>
     <button class="main" type="button" id="vuGo" disabled>올리기</button>
+  </div>
+</div>
+<div class="vselbar" id="vSelBar" hidden>
+  <button type="button" id="vsCancel">취소</button>
+  <span id="vsCount">0개 선택</span>
+  <button type="button" id="vsAll">모두 선택</button>
+  <button type="button" class="danger" id="vsDel" disabled>삭제</button>
+</div>
+<div class="vup" id="vDel" role="dialog" aria-modal="true" aria-label="삭제">
+  <div class="vpbar">
+    <button class="ib" id="vdClose" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ttl"><b>삭제</b><span id="vdMeta"></span></div>
+  </div>
+  <div class="vupbody" id="vDelBody"></div>
+  <div class="vpacts" id="vDelActs">
+    <button type="button" id="vdCancel">취소</button>
+    <button class="danger" type="button" id="vdGo">삭제</button>
   </div>
 </div>
 <div class="vup" id="vCopyBox" role="dialog" aria-modal="true" aria-label="목록 복사">
@@ -313,7 +344,7 @@ const DOC_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const TAB_KEY='gulgul-vault-tab-v1';
 function savedTab(){ try{ const t=localStorage.getItem(TAB_KEY); if(CATS.some(c=>c[0]===t)) return t; }catch(e){} return 'svg'; }
 const saveTab=()=>{ try{ localStorage.setItem(TAB_KEY,cat); }catch(e){} };
-let items=[], allFiles=[], readme=null, stamp=0, cat=savedTab(), sub='', q='', loaded=false, loading=false, shown=[];
+let selMode=false, sel=new Set(), items=[], allFiles=[], readme=null, stamp=0, cat=savedTab(), sub='', q='', loaded=false, loading=false, shown=[];
 const texts=new Map(); // blob sha -> md text
 const blobs=new Map(); // blob sha -> Promise<{blob,url}>
 let token=''; try{ token=localStorage.getItem(TOKEN_KEY)||''; }catch(e){}
@@ -379,7 +410,7 @@ async function load(force){
 
 // ---------- 토큰 입력 ----------
 function showAuth(msg){
-  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vMore').hidden=true; $('#vUpload').hidden=true; closeMenu(); $('#vAuthClear').hidden=!token; $('#vShowTok').checked=false; $('#vTokenIn').type='password'; $('#vStamp').textContent='';
+  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vMore').hidden=true; $('#vUpload').hidden=true; closeMenu(); selMode=false; sel.clear(); $('#vSelBar').hidden=true; document.body.classList.remove('selmode'); $('#vAuthClear').hidden=!token; $('#vShowTok').checked=false; $('#vTokenIn').type='password'; $('#vStamp').textContent='';
   $('#vAuthGo').textContent=token?'토큰 바꾸기':'저장하고 열기'; $('#vAuthBack').hidden=!(token&&loaded);
   $('#vAuthErr').textContent=msg||''; if(!msg) $('#vTokenIn').focus();
 }
@@ -463,13 +494,13 @@ function imgCard(it,imgs){
   im.onerror=()=>{ th.classList.add('bad'); th.textContent='불러올 수 없음'; };
   im._load=()=>getBlob(it).then(b=>{ im.src=b.url; },()=>{ th.classList.add('bad'); th.textContent='불러올 수 없음'; });
   th.append(im); if(lazy) lazy.observe(im); else im._load(); // 화면에 가까워질 때만 불러옵니다 (지연 로딩)
-  return h('button',{class:'vi',type:'button',onclick:()=>openPreview(imgs,imgs.indexOf(it))},th,h('span',{class:'vt'},h('b',{text:it.label}),h('small',{text:it.ext.toUpperCase()})));
+  return h('button',{class:'vi'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openPreview(imgs,imgs.indexOf(it)); }},th,h('span',{class:'vt'},h('b',{text:it.label}),h('small',{text:it.ext.toUpperCase()})));
 }
 function mdTitle(t,fallback){ const m=t.match(/^#\s+(.+)$/m); return m?m[1].replace(/[`*]/g,'').trim():fallback; }
 function mdCard(it){
   const b=h('b',{text:it.label}); const th=h('span',{class:'vth'}); th.innerHTML=DOC_ICON; th.append(b);
   getText(it).then(t=>{ b.textContent=mdTitle(t,it.label); }).catch(()=>{});
-  return h('button',{class:'vi vmd',type:'button',onclick:()=>openReader(it,b.textContent)},th,h('span',{class:'vt'},h('small',{text:'MD · '+it.name})));
+  return h('button',{class:'vi vmd'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openReader(it,b.textContent); }},th,h('span',{class:'vt'},h('small',{text:'MD · '+it.name})));
 }
 async function getText(it){
   if(texts.has(it.sha)) return texts.get(it.sha);
@@ -525,7 +556,9 @@ $('#vGuide').addEventListener('toggle',async e=>{
 });
 
 // ---------- reader (prompts .md) ----------
+let rd=null;
 function openReader(it,title){
+  rd=it;
   $('#vrName').textContent=title||it.label; $('#vrMeta').textContent=it.name;
   const host=$('#vrMd'); host.textContent='불러오는 중…'; $('#vRead .vrbody').scrollTop=0;
   pushLayer($('#vRead'));
@@ -773,6 +806,17 @@ function showProg(done,total,label){
   const body=$('#vUpBody'); body.replaceChildren(h('div',{class:'vprog'},h('div',{},label),h('div',{class:'vbar'},h('i',{style:`width:${pct}%`})),h('small',{text:`${done} / ${total}`})));
 }
 const isRate=e=>e&&(e.remaining==='0'||/rate limit/i.test(e.msg||''));
+// 파일 변경(추가·덮어쓰기·삭제(sha:null))을 커밋 하나로 만들어 main에 올립니다
+async function commitEntries(entries,message){
+  for(let t=0;;t++){
+    const head=(await gh('GET',`/git/ref/heads/${BRANCH}`)).object.sha, base=(await gh('GET',`/git/commits/${head}`)).tree.sha;
+    let tree; try{ tree=await gh('POST','/git/trees',{base_tree:base,tree:entries}); }catch(e){ e.stage='tree'; throw e; }
+    const c=await gh('POST','/git/commits',{message,tree:tree.sha,parents:[head]});
+    try{ await gh('PATCH',`/git/refs/heads/${BRANCH}`,{sha:c.sha,force:false}); return; }
+    catch(e){ if((e.status===422||e.status===409)&&t<2) continue; throw e; } // 그 사이 main이 바뀌었으면 새 main 위에 다시 커밋합니다
+  }
+}
+const isDenied=e=>e&&!isRate(e)&&((e.stage==='blob'||e.stage==='tree')?(e.status===403||e.status===404):/not accessible by/i.test(e.msg||''));
 async function doUpload(){
   const u=up, p=planCur; if(!u||!p||upBusy) return;
   const files=p.adds.concat(p.overs); if(!files.length) return;
@@ -785,16 +829,10 @@ async function doUpload(){
       showProg(++done,files.length,'파일 올리는 중…'); } };
     await Promise.all([worker(),worker(),worker()]);
     showProg(files.length,files.length,'커밋하는 중…');
-    for(let t=0;;t++){
-      const head=(await gh('GET',`/git/ref/heads/${BRANCH}`)).object.sha, base=(await gh('GET',`/git/commits/${head}`)).tree.sha;
-      const tree=await gh('POST','/git/trees',{base_tree:base,tree:files.map((f,i)=>({path:f.path,mode:'100644',type:'blob',sha:shas[i]}))});
-      const c=await gh('POST','/git/commits',{message:`보관함 업로드: 파일 ${files.length}개`,tree:tree.sha,parents:[head]});
-      try{ await gh('PATCH',`/git/refs/heads/${BRANCH}`,{sha:c.sha,force:false}); break; }
-      catch(e){ if((e.status===422||e.status===409)&&t<2) continue; throw e; } // 그 사이 main이 바뀌었으면 새 main 위에 다시 커밋합니다
-    }
+    await commitEntries(files.map((f,i)=>({path:f.path,mode:'100644',type:'blob',sha:shas[i]})),`보관함 업로드: 파일 ${files.length}개`);
   }catch(e){
     upBusy=false;
-    const denied=e&&!isRate(e)&&(e.stage==='blob'?(e.status===403||e.status===404):/not accessible by/i.test(e.msg||''));
+    const denied=isDenied(e);
     if(denied||(e&&e.status===401)){
       const m=denied?'쓰기 권한 토큰이 필요합니다. Contents 권한을 Read and write로 만든 토큰을 입력해 주세요.':errText(e);
       toast(denied?'쓰기 권한 토큰이 필요합니다':'토큰을 다시 입력해 주세요');
@@ -815,6 +853,46 @@ $('#vUpload').onclick=()=>{ fileIn.value=''; fileIn.click(); };
 fileIn.onchange=()=>{ const fs=[...fileIn.files]; fileIn.value=''; if(fs.length) startUpload(fs); };
 $('#vuClose').onclick=closeTop; $('#vuCancel').onclick=closeTop; $('#vuGo').onclick=doUpload;
 window.addEventListener('beforeunload',e=>{ if(upBusy){ e.preventDefault(); e.returnValue=''; } });
+
+// ---------- 선택 · 삭제 ----------
+function updSel(){
+  document.body.classList.toggle('selmode',selMode); $('#vSelBar').hidden=!selMode;
+  $('#vsCount').textContent=`${sel.size}개 선택`; $('#vsDel').disabled=!sel.size; $('#vsDel').textContent=sel.size?`삭제 (${sel.size})`:'삭제';
+}
+function toggleSel(it,el){ if(sel.has(it.path)){ sel.delete(it.path); el.classList.remove('sel'); } else { sel.add(it.path); el.classList.add('sel'); } updSel(); }
+function exitSel(){ selMode=false; sel.clear(); updSel(); render(); }
+$('#vSelMode').onclick=()=>{ closeMenu(); selMode=true; updSel(); render(); toast('삭제할 파일을 눌러 선택해 주세요'); };
+$('#vsCancel').onclick=exitSel;
+$('#vsAll').onclick=()=>{ shown.forEach(it=>sel.add(it.path)); updSel(); render(); };
+$('#vsDel').onclick=()=>askDelete(items.filter(it=>sel.has(it.path)));
+$('#vpTrash').onclick=()=>{ const it=pv.list[pv.i]; if(it) askDelete([it]); };
+$('#vrTrash').onclick=()=>{ if(rd) askDelete([rd]); };
+let del=null, delBusy=false;
+function askDelete(list){
+  if(!list.length||delBusy) return;
+  del={list}; $('#vdMeta').textContent=`파일 ${list.length}개`; $('#vdGo').textContent=`삭제 (${list.length}개)`; $('#vdGo').disabled=false; $('#vDelActs').hidden=false;
+  const box=h('ul',{class:'vlist'}); list.slice(0,300).forEach(it=>box.append(h('li',{},h('span',{text:it.path}))));
+  if(list.length>300) box.append(h('li',{},h('span',{text:`외 ${list.length-300}개`})));
+  $('#vDelBody').replaceChildren(h('div',{class:'vsec bad'},h('h3',{},'삭제할 파일',h('span',{class:'n',text:list.length+'개'})),box,
+    h('p',{class:'vnote',text:'gulgul-assets main에서 바로 삭제됩니다. 실수해도 GitHub 커밋 기록에는 남아 있어 되돌릴 수 있습니다.'})));
+  pushLayer($('#vDel'),()=>{ if(!delBusy) del=null; });
+}
+async function doDelete(){
+  const d=del; if(!d||delBusy) return; delBusy=true; $('#vDelActs').hidden=true;
+  $('#vDelBody').replaceChildren(h('div',{class:'vprog'},'삭제하는 중…'));
+  try{ await commitEntries(d.list.map(it=>({path:it.path,mode:'100644',type:'blob',sha:null})),`보관함 삭제: 파일 ${d.list.length}개`); }
+  catch(e){
+    delBusy=false; $('#vDelActs').hidden=false;
+    if(isDenied(e)||(e&&e.status===401)){ toast(isDenied(e)?'쓰기 권한 토큰이 필요합니다':'토큰을 다시 입력해 주세요'); const m=isDenied(e)?'쓰기 권한 토큰이 필요합니다. Contents 권한을 Read and write로 만든 토큰을 입력해 주세요.':errText(e); if(stack.length) history.go(-stack.length); showAuth(m); return; }
+    $('#vDelBody').replaceChildren(h('p',{class:'verr',text:'삭제하지 못했습니다. '+(isRate(e)?'GitHub 요청 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.':e&&e.status?`GitHub 오류 (${e.status}${e.msg?': '+e.msg:''})`:'네트워크 연결을 확인해 주세요.')+' 아무것도 삭제되지 않았습니다.'}),h('button',{class:'pill',type:'button',text:'다시 시도',onclick:()=>askDeleteRetry(d)}));
+    return;
+  }
+  delBusy=false; del=null; $('#vDelActs').hidden=false; if(stack.length) history.go(-stack.length); // 삭제 확인, 미리보기 등 열린 화면을 모두 닫습니다
+  selMode=false; sel.clear(); updSel(); toast(`파일 ${d.list.length}개를 삭제했습니다`); load(true);
+}
+function askDeleteRetry(d){ del=d; $('#vdGo').disabled=false; $('#vDelActs').hidden=false; $('#vDelBody').replaceChildren(h('div',{class:'vsec bad'},h('h3',{},'삭제할 파일',h('span',{class:'n',text:d.list.length+'개'})),h('ul',{class:'vlist'},d.list.slice(0,300).map(it=>h('li',{},h('span',{text:it.path})))))); }
+$('#vdClose').onclick=closeTop; $('#vdCancel').onclick=closeTop; $('#vdGo').onclick=doDelete;
+window.addEventListener('beforeunload',e=>{ if(delBusy){ e.preventDefault(); e.returnValue=''; } });
 
 // ---------- 목록 복사 ----------
 // 전체 파일을 '경로, 크기(KB), 마지막 수정일' 한 줄씩 복사합니다. 수정일은 main 커밋을 최신부터 훑어 파일별로 찾고,

@@ -38,7 +38,7 @@ button{cursor:pointer}
 .ib svg{width:22px; height:22px}
 /* 상단 바 + 탭 */
 .top{position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:2px; height:var(--top); padding:env(safe-area-inset-top,0px) 8px 0 16px; background:var(--blue); color:#fff}
-.top h1{margin:0; font-size:18px; font-weight:900; letter-spacing:.01em}
+.top h1{margin:0; font-size:18px; font-weight:900; letter-spacing:.01em; white-space:nowrap}
 .top .grow{flex:1}
 .vstamp{font-size:11px; font-weight:700; opacity:.8; white-space:nowrap; margin-right:2px}
 #vRefresh.spin svg{animation:vspin .9s linear infinite}
@@ -144,7 +144,10 @@ button{cursor:pointer}
 .upbtn{flex:none; height:34px; padding:0 12px; margin:0 2px; border:1px solid rgba(255,255,255,.55); border-radius:10px; background:rgba(255,255,255,.16); color:#fff; font-weight:900; font-size:13px; white-space:nowrap}
 .upbtn:active{background:rgba(255,255,255,.3)}
 .upbtn[hidden]{display:none}
-@media (max-width:359px){ .vstamp{display:none} }
+@media (max-width:419px){ .vstamp{display:none} }
+.upbtn svg{display:none; width:18px; height:18px; vertical-align:middle}
+@media (max-width:349px){ .upbtn.cp svg{display:inline-block} .upbtn.cp span{display:none} .upbtn.cp{padding:0 9px} }
+.upbtn:disabled{opacity:.6}
 .vauth .sub{background:var(--bg); border-color:var(--line); color:var(--ink); font-weight:700; font-size:14px; height:44px}
 .vauth .sub[hidden]{display:none}
 /* 올리기 화면 */
@@ -192,6 +195,7 @@ select.vf{appearance:auto}
   <span class="grow"></span>
   <span class="vstamp" id="vStamp"></span>
   <button class="upbtn" id="vUpload" type="button" hidden>올리기</button>
+  <button class="upbtn cp" id="vCopyList" type="button" aria-label="목록 복사" title="목록 복사" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 012-2h9"/></svg><span>목록 복사</span></button>
   <button class="ib" id="vKey" type="button" aria-label="토큰 지우기" title="토큰 지우기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9"/><path d="M16 7l3 3"/><path d="M14 9l2 2"/></svg></button>
   <button class="ib" id="vRefresh" type="button" aria-label="새로고침" title="새로고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 00-14.5-4.4L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.5 4.4L20 16"/><path d="M20 20v-4h-4"/></svg></button>
 </header>
@@ -256,6 +260,14 @@ select.vf{appearance:auto}
     <button class="main" type="button" id="vuGo" disabled>올리기</button>
   </div>
 </div>
+<div class="vup" id="vCopyBox" role="dialog" aria-modal="true" aria-label="목록 복사">
+  <div class="vpbar">
+    <button class="ib" id="vcClose" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ttl"><b>목록 복사</b><span>자동 복사가 막혀 있어 직접 복사해 주세요</span></div>
+  </div>
+  <div class="vupbody"><textarea class="vf" id="vcText" readonly spellcheck="false" style="height:60vh; padding:10px 12px; font-size:12px; line-height:1.5; white-space:pre; overflow:auto"></textarea></div>
+  <div class="vpacts"><button class="main" type="button" id="vcSel">전체 선택</button></div>
+</div>
 <div class="vtoast" id="vToast" role="status"></div>
 <script>
 // 굴굴 보관함: 비공개 저장소 gulgul-assets(main)의 파일을 GitHub API로 불러와 보여 주고, 휴대폰에서 파일을 올릴 수 있습니다.
@@ -310,7 +322,7 @@ async function fetchTree(tk){
   if(!r.ok) throw {status:r.status,remaining:r.headers.get('x-ratelimit-remaining')};
   const j=await r.json();
   if(!j||!Array.isArray(j.tree)) throw {status:0};
-  return j.tree.filter(t=>t.type==='blob').map(t=>({path:t.path,sha:t.sha}));
+  const out=j.tree.filter(t=>t.type==='blob').map(t=>({path:t.path,sha:t.sha,size:t.size})); out.truncated=!!j.truncated; return out;
 }
 // 파일 내용은 sha 기준 blob API로 받습니다 (비공개 저장소는 raw 주소를 쓸 수 없음). 동시에 6개까지만 요청합니다.
 let active=0; const waiting=[];
@@ -346,11 +358,11 @@ async function load(force){
 
 // ---------- 토큰 입력 ----------
 function showAuth(msg){
-  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vKey').hidden=!token; $('#vUpload').hidden=true; $('#vStamp').textContent='';
+  $('#vAuth').hidden=false; $('#vMain').hidden=true; $('#vTabs').hidden=true; $('#vRefresh').hidden=true; $('#vKey').hidden=!token; $('#vUpload').hidden=true; $('#vCopyList').hidden=true; $('#vStamp').textContent='';
   $('#vAuthGo').textContent=token?'토큰 바꾸기':'저장하고 열기'; $('#vAuthBack').hidden=!(token&&loaded);
   $('#vAuthErr').textContent=msg||''; if(!msg) $('#vTokenIn').focus();
 }
-function showMain(){ $('#vAuth').hidden=true; $('#vMain').hidden=false; $('#vTabs').hidden=false; $('#vRefresh').hidden=false; $('#vKey').hidden=false; $('#vUpload').hidden=false; }
+function showMain(){ $('#vAuth').hidden=true; $('#vMain').hidden=false; $('#vTabs').hidden=false; $('#vRefresh').hidden=false; $('#vKey').hidden=false; $('#vUpload').hidden=false; $('#vCopyList').hidden=false; }
 $('#vAuthBack').onclick=()=>{ held=null; showMain(); render(); };
 function clearToken(){ token=''; try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(CACHE_KEY); }catch(e){} blobs.clear(); texts.clear(); items=[]; allFiles=[]; readme=null; loaded=false; guideDone=false; $('#vGuideMd').textContent=''; $('#vGuide').open=false; }
 $('#vAuthForm').addEventListener('submit',async e=>{
@@ -774,6 +786,59 @@ fileIn.onchange=()=>{ const fs=[...fileIn.files]; fileIn.value=''; if(fs.length)
 $('#vuClose').onclick=closeTop; $('#vuCancel').onclick=closeTop; $('#vuGo').onclick=doUpload;
 window.addEventListener('beforeunload',e=>{ if(upBusy){ e.preventDefault(); e.returnValue=''; } });
 
+// ---------- 목록 복사 ----------
+// 전체 파일을 '경로, 크기(KB), 마지막 수정일' 한 줄씩 복사합니다. 수정일은 main 커밋을 최신부터 훑어 파일별로 찾고,
+// 파일 내용(sha)이 같으면 이 기기에 저장해 둔 날짜를 다시 씁니다. 그래서 처음 한 번만 오래 걸립니다.
+const DATES_KEY='gulgul-vault-dates-v1';
+async function commitFiles(sha){
+  const names=[]; for(let pg=1;pg<=10;pg++){ const j=await gh('GET',`/commits/${sha}?per_page=300&page=${pg}`), fl=j.files||[]; fl.forEach(f=>names.push(f.filename)); if(fl.length<300) break; }
+  return names;
+}
+async function fetchDates(files,onProg){
+  let cache={}; try{ cache=JSON.parse(localStorage.getItem(DATES_KEY))||{}; }catch(_){}
+  const date=new Map(), need=new Set();
+  files.forEach(f=>{ const c=cache[f.path]; if(c&&c[0]===f.sha) date.set(f.path,c[1]); else need.add(f.path); });
+  const total=need.size; let seen=0;
+  for(let pg=1;need.size&&pg<=50;pg++){
+    const list=await gh('GET',`/commits?sha=${BRANCH}&per_page=100&page=${pg}`); if(!list.length) break;
+    for(let i=0;i<list.length&&need.size;i+=6){
+      const part=list.slice(i,i+6), got=await Promise.all(part.map(c=>commitFiles(c.sha)));
+      got.forEach((names,k)=>{ const d=part[k].commit.committer.date; names.forEach(n=>{ if(need.delete(n)){ date.set(n,d); seen++; } }); });
+      onProg(seen,total);
+    }
+  }
+  const next={}; files.forEach(f=>{ if(date.has(f.path)) next[f.path]=[f.sha,date.get(f.path)]; });
+  try{ localStorage.setItem(DATES_KEY,JSON.stringify(next)); }catch(_){}
+  return date;
+}
+const fmtDay=iso=>{ if(!iso) return '-'; const d=new Date(iso), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; };
+async function buildList(){
+  const files=await fetchTree(token), btn=$('#vCopyList');
+  const date=await fetchDates(files,(a,b)=>{ btn.querySelector('span').textContent=`${a}/${b}`; });
+  const text=files.slice().sort((a,b)=>a.path.localeCompare(b.path,'ko',{numeric:true})).map(f=>`${f.path}, ${((f.size||0)/1024).toFixed(1)}, ${fmtDay(date.get(f.path))}`).join('\n');
+  return {text,n:files.length,truncated:files.truncated,missing:files.filter(f=>!date.has(f.path)).length};
+}
+$('#vCopyList').onclick=async()=>{
+  const btn=$('#vCopyList'), label=btn.querySelector('span'); if(btn.disabled) return;
+  btn.disabled=true; label.textContent='복사 중…'; toast('목록을 만드는 중입니다. 처음에는 시간이 걸릴 수 있습니다');
+  let res=null, jerr=null;
+  const job=buildList().then(r=>{ res=r; return new Blob([r.text],{type:'text/plain'}); },e=>{ jerr=e; throw e; });
+  // 사파리는 버튼을 누른 직후에 복사를 시작해야 해서, 만드는 중인 결과(Promise)를 그대로 넘깁니다
+  let clip=null; try{ if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write) clip=navigator.clipboard.write([new ClipboardItem({'text/plain':job})]); }catch(_){ clip=null; }
+  try{
+    let ok=false;
+    if(clip){ try{ await clip; ok=true; }catch(_){} }
+    await job.catch(()=>{}); if(!res) throw jerr;
+    if(!ok) ok=await copyText(res.text);
+    if(ok) toast(`목록 ${res.n}개를 복사했습니다`+(res.missing?` (수정일을 찾지 못한 파일 ${res.missing}개는 -)`:'')+(res.truncated?' 일부만 불러왔을 수 있습니다':''));
+    else { $('#vcText').value=res.text; pushLayer($('#vCopyBox')); $('#vcText').focus(); $('#vcText').select(); }
+  }catch(e){
+    if(e&&e.status===401){ showAuth(errText(e)); }
+    else toast(e&&e.status?errText(e):'목록을 복사하지 못했습니다. 다시 시도해 주세요');
+  }
+  label.textContent='목록 복사'; btn.disabled=false;
+};
+$('#vcClose').onclick=closeTop; $('#vcSel').onclick=()=>{ const t=$('#vcText'); t.focus(); t.select(); };
 // ---------- entry ----------
 $('#vRefresh').onclick=()=>load(true);
 $('#vSearch').addEventListener('input',e=>{ q=e.target.value; render(); });

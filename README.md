@@ -12,3 +12,5 @@
 - 로고 탭: `gulgul-assets`의 `brand/`와 `logo/`(01_mark, 02_wordmark, 03_lockup, 04_app_icon, 05_favicon, 06_social, 07_guidelines)를 한 탭에서 하위 폴더별로 묶어 보여 줍니다. SVG, PNG, ICO 미리보기, md 읽기, PDF 열기와 다운로드를 지원합니다. 그 밖의 확장자(html 등)는 저장소에는 있어도 보관함에 표시하지 않습니다.
 - 인증카드 탭: `gulgul-assets`의 `cards/`를 자전거길별로 묶어 번호 순서대로, 열림과 잠김을 나란히 보여 줍니다. 위쪽 PNG/SVG 버튼으로 형식을 바꿉니다. 새 자전거길 폴더는 올리면 자동으로 묶음이 생깁니다.
 - 인증카드 파일 규칙: `cards/<자전거길>/<자전거길>_<두 자리 번호>_open|locked.svg|png` (예: `cards/geum/geum_03_open.png`). 자전거길 이름은 영문 소문자, 숫자, 하이픈만 씁니다. 올리기에서 `cards/` 아래 이 규칙에 맞지 않는 파일은 막고, 인증카드 폴더에는 `gulgul_` 접두어를 기본으로 붙이지 않습니다.
+- 분류(manifest): `gulgul-assets`에 `manifest.json`이 있으면 그 파일의 분류(categories)를 탭으로 그대로 씁니다. 파일마다 설명(마우스를 올리거나 길게 누르면 표시)과 원본/내보내기 구분을 보여 주고, 하위 폴더가 여럿인 탭은 하위 폴더별로 묶어 보여 줍니다. `manifest.json`이 없으면 이전 폴더 구조(svg, png, gif …)로 보여 줍니다.
+- 올리기(새 구조): 새 파일은 기본으로 `00_inbox`에 올라갑니다. `05_cards/`에는 `gulgul_card_<자전거길>_<두 자리 번호>_open|locked.svg|png` 이름만 올릴 수 있습니다.

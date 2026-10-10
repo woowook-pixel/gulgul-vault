@@ -188,6 +188,9 @@ select.vf{appearance:auto}
 .vmenu button{height:48px; padding:0 14px; border:0; border-radius:10px; background:none; text-align:left; font-weight:700; font-size:15px}
 .vmenu button:active{background:rgba(127,127,127,.2)}
 .vmenu button:disabled{opacity:.5}
+.vgh{grid-column:1/-1; margin:10px 2px 0; font-size:13px; font-weight:900; display:flex; align-items:baseline; gap:8px; overflow-wrap:anywhere}
+.vgh:first-child{margin-top:0}
+.vgh small{font-size:11px; color:var(--muted); font-weight:700}
 .vcount{font-size:12px; font-weight:700; color:var(--muted); margin:-4px 2px 0}
 .vcount:empty{display:none}
 .vshow{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; min-height:32px}
@@ -327,12 +330,15 @@ const REPO='woowook-pixel/gulgul-assets', BRANCH='main';
 const API=`https://api.github.com/repos/${REPO}`;
 const TREE_URL=`${API}/git/trees/${BRANCH}?recursive=1`;
 const GH_URL=p=>`https://github.com/${REPO}/blob/${BRANCH}/${p.split('/').map(encodeURIComponent).join('/')}`; // 로그인된 계정에서만 열립니다
-const MIME={svg:'image/svg+xml',png:'image/png',gif:'image/gif',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',md:'text/markdown'};
+const MIME={svg:'image/svg+xml',png:'image/png',gif:'image/gif',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',md:'text/markdown',ico:'image/x-icon'};
 const TOKEN_KEY='gulgul-vault-token-v1';
-const CATS=[['svg','SVG 원본'],['png','이미지'],['gif','움짤'],['print','인쇄용'],['reference','참고'],['app_icon','앱 아이콘'],['prompts','프롬프트']];
+const CATS=[['svg','SVG 원본'],['png','이미지'],['gif','움짤'],['print','인쇄용'],['reference','참고'],['app_icon','앱 아이콘'],['logo','로고'],['prompts','프롬프트']];
+// 로고 탭은 brand/(현재 올라간 브랜드 파일)와 logo/(앞으로 올릴 로고 원본)를 함께 보여 줍니다. 하위 폴더 경로로 묶습니다.
+const LOGO_TOPS=new Set(['brand','logo']);
+const catOf=top=>LOGO_TOPS.has(top)?'logo':top;
 // 보관함 페이지 자체 파일은 목록에서 제외합니다 (루트의 페이지 파일, 점(.)으로 시작하는 파일)
 const PAGE_FILES=new Set(['index.html','manifest.webmanifest']);
-const IMG=new Set(['svg','png','gif','jpg','jpeg','webp']);
+const IMG=new Set(['svg','png','gif','jpg','jpeg','webp','ico']);
 const CACHE_KEY='gulgul-vault-tree-v2'; // 파일 목록 캐시: 새로고침 버튼을 눌렀을 때만 다시 받습니다
 const $=s=>document.querySelector(s);
 const h=(tag,props,...kids)=>{ const e=document.createElement(tag); for(const k in props||{}){ const v=props[k]; if(k==='class') e.className=v; else if(k==='text') e.textContent=v; else if(k.startsWith('on')) e[k]=v; else e.setAttribute(k,v); } kids.flat().forEach(c=>c!=null&&e.append(c)); return e; };
@@ -352,7 +358,8 @@ let token=''; try{ token=localStorage.getItem(TOKEN_KEY)||''; }catch(e){}
 function parse(e){
   const path=e.path, p=path.split('/'); if(p.length<2) return null;
   const name=p[p.length-1], dot=name.lastIndexOf('.'), ext=dot>0?name.slice(dot+1).toLowerCase():'', base=dot>0?name.slice(0,dot):name;
-  return {path,sha:e.sha,top:p[0],sub:p.length>2?p[1]:'',name,ext,label:base.replace(/^gulgul_/,'')};
+  const c=catOf(p[0]);
+  return {path,sha:e.sha,top:p[0],cat:c,sub:c==='logo'?p.slice(0,-1).join('/'):(p.length>2?p[1]:''),name,ext,label:base.replace(/^gulgul_/,'')};
 }
 function setTree(files,at){
   allFiles=files;
@@ -456,10 +463,10 @@ document.addEventListener('keydown',e=>{
 });
 
 // ---------- render ----------
-const catItems=()=>items.filter(it=>it.top===cat);
+const catItems=()=>items.filter(it=>it.cat===cat);
 function render(){
   const tabs=$('#vTabs'); tabs.textContent='';
-  CATS.forEach(([k,label])=>{ const n=items.filter(it=>it.top===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; saveTab(); sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
+  CATS.forEach(([k,label])=>{ const n=items.filter(it=>it.cat===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; saveTab(); sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
   $('#vStamp').textContent=stamp?fmtStamp(stamp):'';
   $('#vGuide').hidden=!readme;
   const msg=$('#vMsg'), grid=$('#vGrid'), chips=$('#vChips'), search=$('#vSearch'); grid.textContent=''; chips.textContent=''; msg.textContent=''; $('#vCount').textContent=''; shown=[];
@@ -472,7 +479,7 @@ function render(){
   const all=catItems();
   if(!all.length){ chips.hidden=true; search.hidden=true; msg.textContent='파일 없음'; return; }
   search.hidden=false;
-  const subs=[...new Set(all.map(it=>it.sub))].sort((a,b)=>a.localeCompare(b));
+  const subs=[...new Set(all.map(it=>it.sub))].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
   const named=subs.filter(Boolean);
   if(sub&&!subs.includes(sub)) sub='';
   chips.hidden=!named.length;
@@ -485,7 +492,11 @@ function render(){
   $('#vCount').textContent=(qq||sub)?`${shown.length}개 / 전체 ${all.length}개`:`${all.length}개`;
   if(!shown.length){ msg.textContent='검색 결과가 없습니다'; return; }
   const imgs=shown.filter(it=>it.ext!=='md');
-  shown.forEach(it=>grid.append(it.ext==='md'?mdCard(it):imgCard(it,imgs)));
+  const card=it=>it.ext==='md'?mdCard(it):imgCard(it,imgs);
+  if(cat==='logo'&&!sub){ // 로고 탭은 하위 폴더별로 묶어 제목을 붙입니다
+    const by=new Map(); shown.forEach(it=>{ if(!by.has(it.sub)) by.set(it.sub,[]); by.get(it.sub).push(it); });
+    [...by.keys()].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).forEach(k=>{ grid.append(h('h3',{class:'vgh'},k,h('small',{text:by.get(k).length+'개'}))); by.get(k).forEach(it=>grid.append(card(it))); });
+  } else shown.forEach(it=>grid.append(card(it)));
 }
 function fmtStamp(t){ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return `${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 const lazy=('IntersectionObserver' in window)?new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ lazy.unobserve(en.target); en.target._load(); } }),{rootMargin:'300px'}):null;
@@ -672,7 +683,10 @@ function folderList(){
   allFiles.forEach(f=>{ const p=f.path.split('/'); p.pop(); if(p.some(s=>s.startsWith('.'))) return; let cur=''; p.forEach(s=>{ cur=cur?cur+'/'+s:s; set.add(cur); }); });
   return [...set].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
 }
-function defaultFolder(){ const fs=folderList(); const d=sub&&sub!=='/'?cat+'/'+sub:cat; return fs.includes(d)?d:fs.includes(cat)?cat:''; }
+function defaultFolder(){
+  const fs=folderList(), root=cat==='logo'?(fs.includes('logo')?'logo':'brand'):cat;
+  const d=sub&&sub!=='/'?(cat==='logo'?sub:cat+'/'+sub):root; return fs.includes(d)?d:fs.includes(root)?root:'';
+}
 
 async function readZip(f){
   const JSZip=await loadJSZip();
@@ -793,7 +807,7 @@ function renderPlan(){
   if(adds.length) sec('','추가될 파일',adds.length,listBox(adds));
   if(overs.length) sec('warn','덮어쓸 파일',overs.length,h('p',{class:'vnote',text:'저장소에 같은 경로의 파일이 이미 있어 내용이 바뀝니다.'}),listBox(overs));
   if(same.length) host.append(h('p',{class:'vnote',text:`저장소에 이미 같은 내용이 있어 건너뛰는 파일 ${same.length}개`}));
-  const tops=[...new Set(adds.concat(overs).filter(it=>it.path.includes('/')).map(it=>it.path.split('/')[0]).filter(t=>!CATS.some(c=>c[0]===t)))];
+  const tops=[...new Set(adds.concat(overs).filter(it=>it.path.includes('/')).map(it=>it.path.split('/')[0]).filter(t=>!CATS.some(c=>c[0]===catOf(t))))];
   if(tops.length) host.append(h('p',{class:'vnote',text:`참고: ${tops.join(', ')} 폴더는 보관함 탭에 표시되지 않습니다. 저장소에는 올라갑니다.`}));
   const n=adds.length+overs.length;
   if(!n&&!errs.length&&!big.length) host.append(h('p',{class:'vnote',text:'올릴 새 파일이 없습니다.'}));
@@ -845,7 +859,7 @@ async function doUpload(){
   }
   upBusy=false; $('#vUpActs').hidden=false;
   if($('#vUp').classList.contains('on')&&up===u) closeTop();
-  const top=files[0].path.split('/'); if(top.length>1&&CATS.some(c=>c[0]===top[0])){ cat=top[0]; saveTab(); sub=''; q=''; $('#vSearch').value=''; }
+  const top=files[0].path.split('/'); if(top.length>1&&CATS.some(c=>c[0]===catOf(top[0]))){ cat=catOf(top[0]); saveTab(); sub=''; q=''; $('#vSearch').value=''; }
   toast(`파일 ${files.length}개를 올렸습니다`); load(true);
 }
 const fileIn=h('input',{type:'file',multiple:'',hidden:'',tabindex:'-1','aria-hidden':'true'}); document.body.append(fileIn);

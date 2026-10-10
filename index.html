@@ -312,6 +312,13 @@ body.selmode .vtoast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
     <button class="danger" type="button" id="vdGo">삭제</button>
   </div>
 </div>
+<div class="vup" id="vDoc" role="dialog" aria-modal="true" aria-label="PDF">
+  <div class="vpbar">
+    <button class="ib" id="vdocClose" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="ttl"><b id="vdocName"></b><span id="vdocMeta"></span></div>
+  </div>
+  <div class="vupbody" id="vDocBody"></div>
+</div>
 <div class="vup" id="vCopyBox" role="dialog" aria-modal="true" aria-label="목록 복사">
   <div class="vpbar">
     <button class="ib" id="vcClose" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -330,7 +337,7 @@ const REPO='woowook-pixel/gulgul-assets', BRANCH='main';
 const API=`https://api.github.com/repos/${REPO}`;
 const TREE_URL=`${API}/git/trees/${BRANCH}?recursive=1`;
 const GH_URL=p=>`https://github.com/${REPO}/blob/${BRANCH}/${p.split('/').map(encodeURIComponent).join('/')}`; // 로그인된 계정에서만 열립니다
-const MIME={svg:'image/svg+xml',png:'image/png',gif:'image/gif',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',md:'text/markdown',ico:'image/x-icon'};
+const MIME={svg:'image/svg+xml',png:'image/png',gif:'image/gif',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',md:'text/markdown',ico:'image/x-icon',pdf:'application/pdf'};
 const TOKEN_KEY='gulgul-vault-token-v1';
 const CATS=[['svg','SVG 원본'],['png','이미지'],['gif','움짤'],['print','인쇄용'],['reference','참고'],['app_icon','앱 아이콘'],['logo','로고'],['prompts','프롬프트']];
 // 로고 탭은 brand/(현재 올라간 브랜드 파일)와 logo/(앞으로 올릴 로고 원본)를 함께 보여 줍니다. 하위 폴더 경로로 묶습니다.
@@ -359,12 +366,12 @@ function parse(e){
   const path=e.path, p=path.split('/'); if(p.length<2) return null;
   const name=p[p.length-1], dot=name.lastIndexOf('.'), ext=dot>0?name.slice(dot+1).toLowerCase():'', base=dot>0?name.slice(0,dot):name;
   const c=catOf(p[0]);
-  return {path,sha:e.sha,top:p[0],cat:c,sub:c==='logo'?p.slice(0,-1).join('/'):(p.length>2?p[1]:''),name,ext,label:base.replace(/^gulgul_/,'')};
+  return {path,sha:e.sha,size:e.size,top:p[0],cat:c,sub:c==='logo'?p.slice(0,-1).join('/'):(p.length>2?p[1]:''),name,ext,label:base.replace(/^gulgul_/,'')};
 }
 function setTree(files,at){
   allFiles=files;
   readme=files.find(f=>f.path==='README.md')||null;
-  items=files.filter(f=>!PAGE_FILES.has(f.path)&&!f.path.split('/').some(s=>s.startsWith('.'))).map(parse).filter(it=>it&&(IMG.has(it.ext)||it.ext==='md')).sort((a,b)=>a.path.localeCompare(b.path,'ko',{numeric:true}));
+  items=files.filter(f=>!PAGE_FILES.has(f.path)&&!f.path.split('/').some(s=>s.startsWith('.'))).map(parse).filter(it=>it&&(IMG.has(it.ext)||it.ext==='md'||it.ext==='pdf')).sort((a,b)=>a.path.localeCompare(b.path,'ko',{numeric:true}));
   stamp=at; loaded=true;
 }
 function readCache(){ try{ const j=JSON.parse(localStorage.getItem(CACHE_KEY)); if(j&&Array.isArray(j.files)&&j.at) return j; }catch(e){} return null; }
@@ -491,8 +498,8 @@ function render(){
   shown=all.filter(it=>(!sub||(sub==='/'?!it.sub:it.sub===sub))&&(!qq||it.name.toLowerCase().includes(qq)));
   $('#vCount').textContent=(qq||sub)?`${shown.length}개 / 전체 ${all.length}개`:`${all.length}개`;
   if(!shown.length){ msg.textContent='검색 결과가 없습니다'; return; }
-  const imgs=shown.filter(it=>it.ext!=='md');
-  const card=it=>it.ext==='md'?mdCard(it):imgCard(it,imgs);
+  const imgs=shown.filter(it=>IMG.has(it.ext));
+  const card=it=>it.ext==='md'?mdCard(it):it.ext==='pdf'?pdfCard(it):imgCard(it,imgs);
   if(cat==='logo'&&!sub){ // 로고 탭은 하위 폴더별로 묶어 제목을 붙입니다
     const by=new Map(); shown.forEach(it=>{ if(!by.has(it.sub)) by.set(it.sub,[]); by.get(it.sub).push(it); });
     [...by.keys()].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).forEach(k=>{ grid.append(h('h3',{class:'vgh'},k,h('small',{text:by.get(k).length+'개'}))); by.get(k).forEach(it=>grid.append(card(it))); });
@@ -506,6 +513,11 @@ function imgCard(it,imgs){
   im._load=()=>getBlob(it).then(b=>{ im.src=b.url; },()=>{ th.classList.add('bad'); th.textContent='불러올 수 없음'; });
   th.append(im); if(lazy) lazy.observe(im); else im._load(); // 화면에 가까워질 때만 불러옵니다 (지연 로딩)
   return h('button',{class:'vi'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openPreview(imgs,imgs.indexOf(it)); }},th,h('span',{class:'vt'},h('b',{text:it.label}),h('small',{text:it.ext.toUpperCase()})));
+}
+const PDF_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17v-4h1.5a1.2 1.2 0 010 2.4H8.5"/></svg>';
+function pdfCard(it){
+  const th=h('span',{class:'vth'}); th.innerHTML=PDF_ICON; th.append(h('b',{text:it.label}));
+  return h('button',{class:'vi vmd'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openDoc(it); }},th,h('span',{class:'vt'},h('small',{text:'PDF'+(it.size?' · '+(it.size>=1048576?(it.size/1048576).toFixed(1)+'MB':Math.round(it.size/1024)+'KB'):'')+' · '+it.name})));
 }
 function mdTitle(t,fallback){ const m=t.match(/^#\s+(.+)$/m); return m?m[1].replace(/[`*]/g,'').trim():fallback; }
 function mdCard(it){
@@ -867,6 +879,22 @@ $('#vUpload').onclick=()=>{ fileIn.value=''; fileIn.click(); };
 fileIn.onchange=()=>{ const fs=[...fileIn.files]; fileIn.value=''; if(fs.length) startUpload(fs); };
 $('#vuClose').onclick=closeTop; $('#vuCancel').onclick=closeTop; $('#vuGo').onclick=doUpload;
 window.addEventListener('beforeunload',e=>{ if(upBusy){ e.preventDefault(); e.returnValue=''; } });
+
+// ---------- PDF ----------
+// PDF는 미리보기 대신 새 탭에서 열거나 내려받습니다 (기기의 PDF 보기 기능을 씁니다)
+function openDoc(it){
+  $('#vdocName').textContent=it.label; $('#vdocMeta').textContent=it.path;
+  const body=$('#vDocBody'), show=()=>{ body.replaceChildren(h('div',{class:'vprog'},'PDF를 불러오는 중…')); };
+  const run=()=>{ show(); getBlob(it).then(b=>{
+    if(!$('#vDoc').classList.contains('on')) return;
+    body.replaceChildren(h('div',{class:'vsec'},h('h3',{},it.name),
+      h('a',{class:'pill go',href:b.url,target:'_blank',rel:'noopener',style:'display:grid;place-items:center;height:48px;text-decoration:none;background:var(--blue);border-color:var(--blue);color:#fff;font-weight:900'},'PDF 열기'),
+      h('a',{class:'pill',href:b.url,download:it.name,style:'display:grid;place-items:center;height:48px;text-decoration:none;font-weight:900;color:var(--ink)'},'다운로드'),
+      h('p',{class:'vnote',text:'열리지 않으면 다운로드해서 파일 앱에서 열어 주세요.'})));
+  },()=>{ if($('#vDoc').classList.contains('on')) body.replaceChildren(h('p',{class:'verr',text:'PDF를 불러오지 못했습니다.'}),h('button',{class:'pill',type:'button',text:'다시 시도',onclick:run})); }); };
+  pushLayer($('#vDoc')); run();
+}
+$('#vdocClose').onclick=closeTop;
 
 // ---------- 선택 · 삭제 ----------
 function updSel(){

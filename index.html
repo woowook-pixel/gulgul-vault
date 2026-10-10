@@ -176,7 +176,7 @@ select.vf{appearance:auto}
 .vlist li span:first-child{overflow-wrap:anywhere; min-width:0}
 .vlist li span:last-child{flex:none; color:var(--muted); font-variant-numeric:tabular-nums}
 .vnote{font-size:12px; color:var(--muted); line-height:1.55; margin:0}
-.verr{font-size:13px; font-weight:700; color:#C23B3B; line-height:1.5; margin:0; overflow-wrap:anywhere}
+.verr{white-space:pre-line; font-size:13px; font-weight:700; color:#C23B3B; line-height:1.5; margin:0; overflow-wrap:anywhere}
 @media (prefers-color-scheme: dark){ .verr{color:#FF8C8C} }
 .vbar{height:12px; border-radius:6px; background:var(--line); overflow:hidden}
 .vbar i{display:block; height:100%; width:0; background:var(--teal); transition:width .2s}
@@ -191,6 +191,11 @@ select.vf{appearance:auto}
 .vgh{grid-column:1/-1; margin:10px 2px 0; font-size:13px; font-weight:900; display:flex; align-items:baseline; gap:8px; overflow-wrap:anywhere}
 .vgh:first-child{margin-top:0}
 .vgh small{font-size:11px; color:var(--muted); font-weight:700}
+.vgrid.cards{grid-template-columns:repeat(2,minmax(0,1fr)); max-width:560px}
+.vgrid.cards .vth{aspect-ratio:5/7}
+.vfmt{margin-left:auto; display:flex; gap:6px}
+.vfmt .pill{height:30px; padding:0 12px; font-size:12px}
+.vfmt .pill[aria-pressed="true"]{background:var(--blue); border-color:var(--blue); color:var(--on-blue)}
 .vcount{font-size:12px; font-weight:700; color:var(--muted); margin:-4px 2px 0}
 .vcount:empty{display:none}
 .vshow{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; min-height:32px}
@@ -339,7 +344,7 @@ const TREE_URL=`${API}/git/trees/${BRANCH}?recursive=1`;
 const GH_URL=p=>`https://github.com/${REPO}/blob/${BRANCH}/${p.split('/').map(encodeURIComponent).join('/')}`; // 로그인된 계정에서만 열립니다
 const MIME={svg:'image/svg+xml',png:'image/png',gif:'image/gif',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',md:'text/markdown',ico:'image/x-icon',pdf:'application/pdf'};
 const TOKEN_KEY='gulgul-vault-token-v1';
-const CATS=[['svg','SVG 원본'],['png','이미지'],['gif','움짤'],['print','인쇄용'],['reference','참고'],['app_icon','앱 아이콘'],['logo','로고'],['prompts','프롬프트']];
+const CATS=[['svg','SVG 원본'],['png','이미지'],['gif','움짤'],['print','인쇄용'],['reference','참고'],['app_icon','앱 아이콘'],['cards','인증카드'],['logo','로고'],['prompts','프롬프트']];
 // 로고 탭은 brand/(현재 올라간 브랜드 파일)와 logo/(앞으로 올릴 로고 원본)를 함께 보여 줍니다. 하위 폴더 경로로 묶습니다.
 const LOGO_TOPS=new Set(['brand','logo']);
 const catOf=top=>LOGO_TOPS.has(top)?'logo':top;
@@ -366,7 +371,9 @@ function parse(e){
   const path=e.path, p=path.split('/'); if(p.length<2) return null;
   const name=p[p.length-1], dot=name.lastIndexOf('.'), ext=dot>0?name.slice(dot+1).toLowerCase():'', base=dot>0?name.slice(0,dot):name;
   const c=catOf(p[0]);
-  return {path,sha:e.sha,size:e.size,top:p[0],cat:c,sub:c==='logo'?p.slice(0,-1).join('/'):(p.length>2?p[1]:''),name,ext,label:base.replace(/^gulgul_/,'')};
+  // 인증카드 규칙: cards/<자전거길>/<자전거길>_<두 자리 번호>_open|locked.svg|png
+  let card=null; if(p[0]==='cards'&&p.length===3){ const m=base.match(/^(.+)_(\d{2})_(open|locked)$/); if(m&&m[1]===p[1]&&(ext==='svg'||ext==='png')) card={route:m[1],num:m[2],state:m[3]}; }
+  return {path,sha:e.sha,size:e.size,card,disp:card?`${card.num} ${card.state==='open'?'열림':'잠김'}`:'',top:p[0],cat:c,sub:c==='logo'?p.slice(0,-1).join('/'):(p.length>2?p[1]:''),name,ext,label:base.replace(/^gulgul_/,'')};
 }
 function setTree(files,at){
   allFiles=files;
@@ -473,10 +480,10 @@ document.addEventListener('keydown',e=>{
 const catItems=()=>items.filter(it=>it.cat===cat);
 function render(){
   const tabs=$('#vTabs'); tabs.textContent='';
-  CATS.forEach(([k,label])=>{ const n=items.filter(it=>it.cat===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; saveTab(); sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
+  CATS.forEach(([k,label])=>{ const n=k==='cards'?new Set(items.filter(it=>it.cat===k).map(it=>it.card?it.card.route+it.card.num:it.path)).size:items.filter(it=>it.cat===k).length; tabs.append(h('button',{class:'pill',type:'button','aria-pressed':String(k===cat),onclick:()=>{ if(cat===k) return; cat=k; saveTab(); sub=''; q=''; $('#vSearch').value=''; render(); window.scrollTo(0,0); const on=$('#vTabs .pill[aria-pressed="true"]'); if(on) tabs.scrollTo({left:on.offsetLeft-(tabs.clientWidth-on.offsetWidth)/2}); }},label,loaded?h('span',{class:'n',text:String(n)}):null)); });
   $('#vStamp').textContent=stamp?fmtStamp(stamp):'';
   $('#vGuide').hidden=!readme;
-  const msg=$('#vMsg'), grid=$('#vGrid'), chips=$('#vChips'), search=$('#vSearch'); grid.textContent=''; chips.textContent=''; msg.textContent=''; $('#vCount').textContent=''; shown=[];
+  const msg=$('#vMsg'), grid=$('#vGrid'), chips=$('#vChips'), search=$('#vSearch'); grid.textContent=''; grid.classList.remove('cards'); chips.textContent=''; msg.textContent=''; $('#vCount').textContent=''; shown=[];
   if(!loaded){
     chips.hidden=true; search.hidden=true;
     if(loading){ msg.textContent='파일 목록을 불러오는 중…'; }
@@ -498,6 +505,7 @@ function render(){
   shown=all.filter(it=>(!sub||(sub==='/'?!it.sub:it.sub===sub))&&(!qq||it.name.toLowerCase().includes(qq)));
   $('#vCount').textContent=(qq||sub)?`${shown.length}개 / 전체 ${all.length}개`:`${all.length}개`;
   if(!shown.length){ msg.textContent='검색 결과가 없습니다'; return; }
+  if(cat==='cards'){ renderCards(grid); return; }
   const imgs=shown.filter(it=>IMG.has(it.ext));
   const card=it=>it.ext==='md'?mdCard(it):it.ext==='pdf'?pdfCard(it):imgCard(it,imgs);
   if(cat==='logo'&&!sub){ // 로고 탭은 하위 폴더별로 묶어 제목을 붙입니다
@@ -505,14 +513,33 @@ function render(){
     [...by.keys()].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).forEach(k=>{ grid.append(h('h3',{class:'vgh'},k,h('small',{text:by.get(k).length+'개'}))); by.get(k).forEach(it=>grid.append(card(it))); });
   } else shown.forEach(it=>grid.append(card(it)));
 }
+// ---------- 인증카드 탭: 자전거길별로 묶고, 번호순으로 열림 | 잠김을 나란히 보여 줍니다 ----------
+let cardFmt='png'; try{ cardFmt=localStorage.getItem('gulgul-vault-cardfmt-v1')==='svg'?'svg':'png'; }catch(e){}
+function renderCards(grid){
+  grid.classList.add('cards');
+  const cardsAll=shown.filter(it=>it.card), others=shown.filter(it=>!it.card), routes=new Map();
+  cardsAll.forEach(it=>{ const k=it.card.route+'|'+it.card.num+'|'+it.card.state; if(!routes.has(it.card.route)) routes.set(it.card.route,new Map()); const m=routes.get(it.card.route); if(!m.has(k)) m.set(k,[]); m.get(k).push(it); });
+  const display=[]; let nCards=0;
+  [...routes.keys()].sort((a,b)=>a.localeCompare(b,'ko')).forEach(route=>{
+    const m=routes.get(route);
+    const list=[...m.values()].map(g=>g.find(it=>it.ext===cardFmt)||g[0]).sort((a,b)=>a.card.num.localeCompare(b.card.num)||(a.card.state==='open'?-1:1)-(b.card.state==='open'?-1:1));
+    nCards+=new Set(list.map(it=>it.card.num)).size; list.forEach(it=>display.push(it));
+    const fmtBtn=f=>h('button',{class:'pill',type:'button','aria-pressed':String(cardFmt===f),onclick:()=>{ cardFmt=f; try{ localStorage.setItem('gulgul-vault-cardfmt-v1',f); }catch(e){} render(); }},f.toUpperCase());
+    grid.append(h('h3',{class:'vgh'},route,h('small',{text:new Set(list.map(it=>it.card.num)).size+'장'}),h('span',{class:'vfmt'},fmtBtn('png'),fmtBtn('svg'))));
+    list.forEach(it=>grid.append(imgCard(it,list)));
+  });
+  if(others.length){ grid.append(h('h3',{class:'vgh'},'규칙에 맞지 않는 파일',h('small',{text:others.length+'개'}))); const imgs=others.filter(it=>IMG.has(it.ext)); others.forEach(it=>{ display.push(it); grid.append(it.ext==='md'?mdCard(it):it.ext==='pdf'?pdfCard(it):imgCard(it,imgs)); }); }
+  shown=display; // 모두 선택·삭제는 지금 보이는 파일만 대상으로 합니다
+  $('#vCount').textContent=`${nCards+others.length}장`+((q.trim()||sub)?` (전체 ${new Set(catItems().map(it=>it.card?it.card.route+it.card.num:it.path)).size}장)`:'');
+}
 function fmtStamp(t){ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return `${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
 const lazy=('IntersectionObserver' in window)?new IntersectionObserver(es=>es.forEach(en=>{ if(en.isIntersecting){ lazy.unobserve(en.target); en.target._load(); } }),{rootMargin:'300px'}):null;
 function imgCard(it,imgs){
-  const th=h('span',{class:'vth'}); const im=h('img',{decoding:'async',alt:it.label});
+  const th=h('span',{class:'vth'}); const im=h('img',{decoding:'async',alt:it.disp||it.label});
   im.onerror=()=>{ th.classList.add('bad'); th.textContent='불러올 수 없음'; };
   im._load=()=>getBlob(it).then(b=>{ im.src=b.url; },()=>{ th.classList.add('bad'); th.textContent='불러올 수 없음'; });
   th.append(im); if(lazy) lazy.observe(im); else im._load(); // 화면에 가까워질 때만 불러옵니다 (지연 로딩)
-  return h('button',{class:'vi'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openPreview(imgs,imgs.indexOf(it)); }},th,h('span',{class:'vt'},h('b',{text:it.label}),h('small',{text:it.ext.toUpperCase()})));
+  return h('button',{class:'vi'+(sel.has(it.path)?' sel':''),type:'button',onclick:e=>{ if(selMode) toggleSel(it,e.currentTarget); else openPreview(imgs,imgs.indexOf(it)); }},th,h('span',{class:'vt'},h('b',{text:it.disp||it.label}),h('small',{text:it.ext.toUpperCase()})));
 }
 const PDF_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 17v-4h1.5a1.2 1.2 0 010 2.4H8.5"/></svg>';
 function pdfCard(it){
@@ -602,9 +629,9 @@ function openPreview(list,i){ pv={list,i}; showImg(); pushLayer($('#vPrev'),()=>
 function showImg(){
   const it=pv.list[pv.i]; if(!it) return;
   resetT(false);
-  im.alt=it.label; im.removeAttribute('src'); $('#vpStat').textContent='불러오는 중…';
+  im.alt=it.disp||it.label; im.removeAttribute('src'); $('#vpStat').textContent='불러오는 중…';
   getBlob(it).then(b=>{ if(pv.list[pv.i]===it){ im.src=b.url; $('#vpStat').textContent=''; } },()=>{ if(pv.list[pv.i]===it) $('#vpStat').textContent='이미지를 불러오지 못했습니다.'; });
-  $('#vpName').textContent=it.label;
+  $('#vpName').textContent=it.disp||it.label;
   $('#vpMeta').textContent=`${it.ext.toUpperCase()}${it.sub?' · '+it.sub:''} · ${pv.i+1} / ${pv.list.length}`;
   $('#vpPrev').disabled=pv.i<=0; $('#vpNext').disabled=pv.i>=pv.list.length-1;
   [pv.i-1,pv.i+1].forEach(j=>{ if(pv.list[j]) getBlob(pv.list[j]).catch(()=>{}); });
@@ -720,7 +747,7 @@ async function readZip(f){
 }
 async function readSingle(f){
   const dot=f.name.lastIndexOf('.'), ext=dot>0?f.name.slice(dot):'', base=(dot>0?f.name.slice(0,dot):f.name).normalize('NFC');
-  const s={name:f.name,size:f.size,ext,base:/^gulgul_/i.test(base)?base:'gulgul_'+base};
+  const s={name:f.name,size:f.size,ext,orig:base,def:true,base:/^gulgul_/i.test(base)?base:'gulgul_'+base};
   if(f.size>MAX_BYTES) s.big=true; else s.bytes=new Uint8Array(await f.arrayBuffer());
   return s;
 }
@@ -771,7 +798,7 @@ function buildForm(){
     nf.oninput=()=>{ u.nf=nf.value; refresh(); };
     sec.append(h('label',{class:'vlab'},'기존 폴더',sel),h('label',{class:'vlab'},'새 폴더 이름 (고른 폴더 안에 만들어집니다)',nf),h('div',{class:'vdest',id:'vDest'}));
     u.singles.forEach(s=>{
-      const inp=h('input',{class:'vf',type:'text','aria-label':s.name+' 파일 이름',autocomplete:'off',autocapitalize:'off',spellcheck:'false'}); inp.value=s.base; inp.oninput=()=>{ s.base=inp.value; refresh(); };
+      const inp=h('input',{class:'vf',type:'text','aria-label':s.name+' 파일 이름',autocomplete:'off',autocapitalize:'off',spellcheck:'false'}); inp.value=s.base; s.inp=inp; inp.oninput=()=>{ s.base=inp.value; s.def=false; refresh(); };
       sec.append(h('div',{class:'vlab'},h('span',{class:'vnm-orig',text:s.name+' · '+fmtSize(s.size)}),h('div',{class:'vnm'},inp,s.ext?h('span',{class:'ext',text:s.ext}):null)));
     });
     body.append(sec);
@@ -788,12 +815,19 @@ async function refreshPlan(){
   if(u.singles.length){
     folder=targetFolder(u);
     if(folder==null) errs.push('올릴 폴더를 고르거나 새 폴더 이름을 입력해 주세요.');
+    const inCards=folder!=null&&/^cards(\/|$)/.test(folder);
+    u.singles.forEach(s=>{ // 안 건드린 기본 이름은 폴더에 맞춰 바꿉니다 (인증카드는 gulgul_ 접두어를 붙이지 않습니다)
+      if(s.def){ const nb=inCards||/^gulgul_/i.test(s.orig)?s.orig:'gulgul_'+s.orig; if(nb!==s.base){ s.base=nb; if(s.inp) s.inp.value=nb; } }
+    });
     u.singles.forEach(s=>{
       if(s.big){ big.push(`${s.name} (${fmtSize(s.size)})`); return; }
       const nm=finalName(s); if(!nm){ errs.push(`파일 이름이 비어 있습니다: ${s.name}`); return; }
       if(folder!=null) put({path:folder+'/'+nm,size:s.size,bytes:s.bytes});
     });
   }
+  const CARD_RE=/^cards\/([a-z0-9-]+)\/\1_\d{2}_(open|locked)\.(svg|png)$/;
+  const badCards=items.filter(it=>/^cards\//.test(it.path)&&!CARD_RE.test(it.path));
+  if(badCards.length) errs.push('인증카드 파일 이름 규칙에 맞지 않습니다. cards/<자전거길>/<자전거길>_<두 자리 번호>_open|locked.svg|png 형식이어야 합니다. 예: cards/geum/geum_03_open.png\n'+badCards.slice(0,5).map(it=>it.path).join('\n')+(badCards.length>5?`\n외 ${badCards.length-5}개`:''));
   const dest=$('#vDest'); if(dest) dest.replaceChildren('저장 위치: ',h('b',{text:folder==null?'(선택 안 됨)':folder+'/'}));
   const have=new Map(allFiles.map(f=>[f.path,f.sha])), adds=[], overs=[], same=[];
   for(const it of items){

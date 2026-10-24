@@ -388,7 +388,7 @@ function parse(e){
 function setTree(files,at){
   allFiles=files;
   manifestCur=files.manifest||null; manifest=manifestCur?manifestCur.data:null;
-  CATS=manifest?manifest.categories.map(c=>[c.key,c.label]):LEGACY_CATS;
+  CATS=manifest?manifest.categories.map(c=>[c.key,c.label,/^99_/.test(c.dir)?1:0]).sort((a,b)=>a[2]-b[2]).map(c=>[c[0],c[1]]):LEGACY_CATS; // 99_ 로 시작하는 보관 폴더 탭은 맨 뒤로
   mfMap=new Map(manifest?manifest.files.map(f=>[f.path,f]):[]); dir2key={}; if(manifest) manifest.categories.forEach(c=>{ dir2key[c.dir]=c.key; });
   if(!CATS.some(c=>c[0]===cat)){ cat=(CATS.find(c=>c[0]==='character')||CATS[0])[0]; sub=''; }
   readme=files.find(f=>f.path==='README.md')||null;
